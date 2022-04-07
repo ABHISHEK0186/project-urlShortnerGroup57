@@ -67,6 +67,7 @@ const shortenUrl = async function (req, res) {
         const newData = await urlModel.create(data);
 
         await SET_ASYNC(`${longUrl}`, JSON.stringify(data));
+        await SET_ASYNC(`${urlCode}`, JSON.stringify(data.longUrl))
 
         return res.status(201).send({ status: true, data: data });
 
@@ -92,7 +93,6 @@ const redirect = async function (req, res) {
 
         if (!URL) { return res.status(404).send({ status: false, message: 'No URL found with this URL Code. Please check input and try again' }) }
 
-        await SET_ASYNC(`${urlCode}`, JSON.stringify(URL.longUrl));
 
         return res.status(302).redirect(URL.longUrl);
 
