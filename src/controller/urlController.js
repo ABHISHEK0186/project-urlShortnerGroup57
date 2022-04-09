@@ -35,13 +35,16 @@ const GET_ASYNC = promisify(redisClient.GET).bind(redisClient);
 const shortenUrl = async function (req, res) {
     try {
         const data = req.body;
-        const longUrl = req.body.longUrl;
+        const longUri = req.body.longUrl;
+        const longUrl = longUri.toLowerCase();
 
         if (Object.keys(data) == 0) { return res.status(400).send({ status: false, message: 'No data provided' }) }
 
         if (!isValid(longUrl)) { return res.status(400).send({ status: false, message: 'Long Url is required' }) }
 
         if (!validUrl.isUri(longUrl)) { return res.status(400).send({ status: false, message: 'Please provide a valid URL' }) }
+
+        if (!validUrl.isWebUri(longUrl)) { return res.status(400).send({ status: false, message: 'Please provide a valid URL' }) }
 
         if (!validUrl.isUri(baseUrl)) { return res.status(400).send({ status: false, message: 'The base URL is invalid' }) }
 
@@ -55,19 +58,13 @@ const shortenUrl = async function (req, res) {
 
         const shortUrl = baseUrl + '/' + urlCode;
 
-        const isUniqueURL = await urlModel.findOne({ shortUrl: shortUrl });
-        if (isUniqueURL) { return res.status(400).send({ status: false, mesaage: 'URL already shortened, Please provide a valid unique URL' }) }
-
-        const isUniqueCode = await urlModel.findOne({ urlCode: urlCode });
-        if (isUniqueCode) { return res.status(400).send({ status: false, mesaage: 'URL code is not Unique' }) }
-
         data.shortUrl = shortUrl;
         data.urlCode = urlCode;
 
         const newData = await urlModel.create(data);
 
-        await SET_ASYNC(`${longUrl}`, JSON.stringify(data));
-        await SET_ASYNC(`${urlCode}`, JSON.stringify(data.longUrl))
+        await SET_ASYNC(`${longUrl}`, JSON.stringify(data), "EX", 120);
+        await SET_ASYNC(`${urlCode}`, JSON.stringify(data.longUrl), "EX", 120)
 
         return res.status(201).send({ status: true, data: data });
 
@@ -78,6 +75,8 @@ const shortenUrl = async function (req, res) {
         return res.status(500).send({ message: error.message })
     }
 }
+
+
 
 
 const redirect = async function (req, res) {
@@ -103,6 +102,8 @@ const redirect = async function (req, res) {
         return res.status(500).send({ message: error.message })
     }
 }
+
+
 
 module.exports.shortenUrl = shortenUrl;
 module.exports.redirect = redirect;
