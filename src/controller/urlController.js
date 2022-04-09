@@ -35,10 +35,12 @@ const GET_ASYNC = promisify(redisClient.GET).bind(redisClient);
 const shortenUrl = async function (req, res) {
     try {
         const data = req.body;
-        const longUri = req.body.longUrl;
-        const longUrl = longUri.toLowerCase();
 
         if (Object.keys(data) == 0) { return res.status(400).send({ status: false, message: 'No data provided' }) }
+
+        const longUri = req.body.longUrl;
+
+        const longUrl = longUri.toLowerCase();
 
         if (!isValid(longUrl)) { return res.status(400).send({ status: false, message: 'Long Url is required' }) }
 
@@ -92,6 +94,7 @@ const redirect = async function (req, res) {
 
         if (!URL) { return res.status(404).send({ status: false, message: 'No URL found with this URL Code. Please check input and try again' }) }
 
+        await SET_ASYNC(`${urlCode}`, JSON.stringify(URL.longUrl), "EX", 120)
 
         return res.status(302).redirect(URL.longUrl);
 
